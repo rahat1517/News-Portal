@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>News List</title>
+</head>
+<body>
+  <h1>News Portal</h1>
+  <p id="loggedInfo"></p>
+
+  <button onclick="window.location.href='create.html'">Create News</button>
+  <button onclick="logout()">Logout</button>
+
+  <hr>
+
+  
+  <input type="text" id="searchInput" placeholder="Search by title...">
+
+  <div id="newsList"></div>
+
+  <script src="app.js"></script>
+  <script>
+    requireLogin();
+
+    let allNews = [];
+    let allUsers = [];
+
+    function logout() {
+      localStorage.removeItem("loggedUser");
+      window.location.href = "index.html";
+    }
+
+    async function loadNews() {
+      const loggedUserId = Number(getLoggedUser());
+
+      
+      allUsers = await fetchUsers();
+      allNews  = await fetchNews();
+
+     
+      const loggedUser = allUsers.find(u => Number(u.id) === loggedUserId);
+
+      document.getElementById("loggedInfo").textContent =
+        `Logged in as: ${loggedUser ? loggedUser.name : "Unknown"} (ID: ${loggedUserId})`;
+
+      renderNewsList(allNews);
+    }
+
+    function renderNewsList(list) {
+      const container = document.getElementById("newsList");
+      container.innerHTML = "";
+
+      const loggedId = Number(getLoggedUser());
+
+      if (list.length === 0) {
+        container.innerHTML = "<p>No news found.</p>";
+        return;
+      }
+
+      list.forEach(item => {
+        
+        const author = allUsers.find(u => Number(u.id) === Number(item.author_id));
+        const authorName = author ? author.name : "Unknown";
+
+        const commentCount = item.comments ? item.comments.length : 0;
+
+        const div = document.createElement("div");
+        div.style.border = "1px solid #ccc";
+        div.style.padding = "10px";
+        div.style.marginBottom = "10px";
+
+        div.innerHTML = `
+          <h3>${item.title}</h3>
+          <p>Author: <b>${authorName}</b></p>
+          <p>Comments: ${commentCount}</p>
+
+          <button onclick="viewDetails(${item.id})">View Details</button>
+
+          ${Number(item.author_id) === loggedId
+            ? `
+                <button onclick="editNews(${item.id})">Edit</button>
+                <button onclick="deleteNews(${item.id})">Delete</button>
+              `
+            : ""
+          }
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    function viewDetails(id) {
+      window.location.href = `details.html?id=${id}`;
+    }
+
+    function editNews(id) {
+      window.location.href = `edit.html?id=${id}`;
+    }
+
+    async function deleteNews(id) {
+      const newsItem = allNews.find(n => Number(n.id) === Number(id));
+      const loggedId = Number(getLoggedUser());
+
+      if (!newsItem || Number(newsItem.author_id) !== loggedId) {
+        alert("You cannot delete a news written by someone else.");
+        return;
+      }
+
+      if (confirm("Delete this news?")) {
+        await fetch(`${API}/news/${id}`, { method: "DELETE" });
+        allNews = allNews.filter(n => Number(n.id) !== Number(id));
+        renderNewsList(allNews);
+      }
+    }
+
+  
+    document.getElementById("searchInput").addEventListener("input", function () {
+      const q = this.value.toLowerCase();
+      const filtered = allNews.filter(n => n.title.toLowerCase().includes(q));
+      renderNewsList(filtered);
+    });
+
+    loadNews();
+  </script>
+</body>
+</html>

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>News Details</title>
+</head>
+<body>
+  <button onclick="window.location.href='news.html'">Back to News List</button>
+  <h2>News Details</h2>
+
+  <div id="newsContainer"></div>
+
+  <h3>Comments</h3>
+  <div id="commentsContainer"></div>
+
+  <h3>Add Comment</h3>
+  <textarea id="commentText" rows="4" cols="50"></textarea><br>
+  <button id="addCommentBtn">Add Comment</button>
+
+  <script src="app.js"></script>
+  <script>
+    requireLogin();
+
+    const params = new URLSearchParams(window.location.search);
+    const newsId = params.get("id");
+    let currentNews = null;
+    let allUsers = [];
+
+    async function loadDetails() {
+      allUsers = await fetchUsers();
+      currentNews = await fetchNewsById(newsId);
+
+      const author = allUsers.find(u => u.id === currentNews.author_id);
+
+     
+      const newsDiv = document.getElementById("newsContainer");
+      newsDiv.innerHTML = `
+        <h3>${currentNews.title}</h3>
+        <p>${currentNews.body}</p>
+        <p><b>Author:</b> ${author ? author.name : "Unknown"}</p>
+      `;
+
+      renderComments();
+    }
+
+    function renderComments() {
+      const container = document.getElementById("commentsContainer");
+      container.innerHTML = "";
+
+      if (!currentNews.comments || currentNews.comments.length === 0) {
+        container.innerHTML = "<p>No comments yet.</p>";
+        return;
+      }
+
+      currentNews.comments.forEach(c => {
+        const user = allUsers.find(u => u.id === c.user_id);
+        const commenterName = user ? user.name : "Unknown";
+
+        const div = document.createElement("div");
+        div.style.border = "1px solid #ddd";
+        div.style.marginBottom = "4px";
+        div.style.padding = "4px";
+
+        const time = c.timestamp ? new Date(c.timestamp).toLocaleString() : "";
+
+        div.innerHTML = `
+          <p><b>${commenterName}</b> (${time})</p>
+          <p>${c.text}</p>
+        `;
+
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById("addCommentBtn").addEventListener("click", async function () {
+      const textEl = document.getElementById("commentText");
+      const text = textEl.value;
+
+      if (isEmpty(text)) {
+        alert("Comment text cannot be empty.");
+        return;
+      }
+
+      const newComment = {
+        id: Date.now(),
+        text,
+        user_id: getLoggedUser(),
+        timestamp: new Date().toISOString()
+      };
+
+      const updatedComments = currentNews.comments ? [...currentNews.comments, newComment] : [newComment];
+
+     
+      await fetch(`${API}/news/${newsId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comments: updatedComments })
+      });
+
+     
+      currentNews.comments = updatedComments;
+      textEl.value = "";
+      renderComments();
+    });
+
+    loadDetails();
+  </script>
+</body>
+</html>

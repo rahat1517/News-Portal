@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Edit News</title>
+</head>
+<body>
+  <button onclick="window.location.href='news.html'">Back to News List</button>
+  <h2>Edit News</h2>
+
+  <form id="editForm">
+    <div>
+      <label for="title">Title:</label><br>
+      <input type="text" id="title" name="title" style="width: 300px;">
+    </div>
+    <br>
+    <div>
+      <label for="body">Body:</label><br>
+      <textarea id="body" name="body" rows="6" cols="50"></textarea>
+    </div>
+    <br>
+    <button type="submit">Save Changes</button>
+  </form>
+
+  <script src="app.js"></script>
+  <script>
+    requireLogin();
+
+    const params = new URLSearchParams(window.location.search);
+    const newsId = params.get("id");
+    let currentNews = null;
+
+    async function loadEdit() {
+      currentNews = await fetchNewsById(newsId);
+      const loggedId = getLoggedUser();
+
+      if (currentNews.author_id !== loggedId) {
+        alert("You cannot edit news written by another user.");
+        window.location.href = "news.html";
+        return;
+      }
+
+      document.getElementById("title").value = currentNews.title;
+      document.getElementById("body").value = currentNews.body;
+    }
+
+    document.getElementById("editForm").addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const titleEl = document.getElementById("title");
+      const bodyEl = document.getElementById("body");
+
+      const title = titleEl.value;
+      const body = bodyEl.value;
+
+      
+      if (isEmpty(title)) {
+        alert("News title cannot be empty.");
+        return;
+      }
+
+      if (isShort(body, 20)) {
+        alert("News body must be at least 20 characters.");
+        return;
+      }
+
+      await fetch(`${API}/news/${newsId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, body })
+      });
+
+      window.location.href = "news.html";
+    });
+
+    loadEdit();
+  </script>
+</body>
+</html>

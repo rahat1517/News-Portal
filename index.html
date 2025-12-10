@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login - News Portal</title>
+</head>
+<body>
+  <h2>Login</h2>
+
+  <label for="userSelect">Select User:</label>
+  <select id="userSelect"></select>
+  <button id="loginBtn">Login</button>
+
+  <script src="app.js"></script>
+  <script>
+   
+    (async function () {
+      const users = await fetchUsers();
+      const select = document.getElementById("userSelect");
+
+      users.forEach(u => {
+        const opt = document.createElement("option");
+        opt.value = u.id;
+        opt.textContent = `${u.name} (${u.email})`;
+        select.appendChild(opt);
+      });
+    })();
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const select = document.getElementById("userSelect");
+      const userId = select.value;
+      if (!userId) {
+        alert("Please select a user.");
+        return;
+      }
+      loginUser(userId);
+      window.location.href = "news.html";
+    });
+  </script>
+</body>
+</html>

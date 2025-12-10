@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head><title>Create News</title></head>
+<body>
+
+<h2>Create News</h2>
+
+<form id="newsForm">
+  <input id="title" placeholder="Title"><br><br>
+  <textarea id="body" placeholder="Body"></textarea><br><br>
+  <button type="submit">Create</button>
+</form>
+
+<script src="app.js"></script>
+<script>
+requireLogin();
+
+document.getElementById("newsForm").onsubmit = async (e) => {
+  e.preventDefault();
+
+  const obj = {
+    title: title.value,
+    body: body.value,
+    author_id: getLoggedUser(),
+    comments: []
+  };
+
+  await fetch(`${API}/news`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(obj)
+  });
+
+  window.location.href = "news.html";
+};
+</script>
+</body>
+</html>
