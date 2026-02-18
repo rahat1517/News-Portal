@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Login - News Portal</title>
 </head>
 <body>
@@ -13,26 +13,28 @@
 
   <script src="app.js"></script>
   <script>
-   
     (async function () {
-      const users = await fetchUsers();
-      const select = document.getElementById("userSelect");
+      try {
+        const users = await fetchUsers();
+        const select = document.getElementById("userSelect");
+        select.innerHTML = `<option value="">-- Select a user --</option>`;
 
-      users.forEach(u => {
-        const opt = document.createElement("option");
-        opt.value = u.id;
-        opt.textContent = `${u.name} (${u.email})`;
-        select.appendChild(opt);
-      });
+        users.forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.id;
+          opt.textContent = `${u.name} (${u.email})`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load users. Is JSON-server running?");
+      }
     })();
 
     document.getElementById("loginBtn").addEventListener("click", () => {
-      const select = document.getElementById("userSelect");
-      const userId = select.value;
-      if (!userId) {
-        alert("Please select a user.");
-        return;
-      }
+      const userId = document.getElementById("userSelect").value;
+      if (!userId) return alert("Please select a user.");
+
       loginUser(userId);
       window.location.href = "news.html";
     });
