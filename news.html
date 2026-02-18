@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>News List</title>
 </head>
 <body>
@@ -13,9 +13,7 @@
 
   <hr>
 
-  
-  <input type="text" id="searchInput" placeholder="Search by title...">
-
+  <input type="text" id="searchInput" placeholder="Search by title..." />
   <div id="newsList"></div>
 
   <script src="app.js"></script>
@@ -25,43 +23,38 @@
     let allNews = [];
     let allUsers = [];
 
-    function logout() {
-      localStorage.removeItem("loggedUser");
-      window.location.href = "index.html";
-    }
-
     async function loadNews() {
-      const loggedUserId = Number(getLoggedUser());
+      try {
+        const loggedUserId = getLoggedUser();
 
-      
-      allUsers = await fetchUsers();
-      allNews  = await fetchNews();
+        allUsers = await fetchUsers();
+        allNews  = await fetchNews();
 
-     
-      const loggedUser = allUsers.find(u => Number(u.id) === loggedUserId);
+        const loggedUser = allUsers.find(u => u.id === loggedUserId);
+        document.getElementById("loggedInfo").textContent =
+          `Logged in as: ${loggedUser ? loggedUser.name : "Unknown"} (ID: ${loggedUserId})`;
 
-      document.getElementById("loggedInfo").textContent =
-        `Logged in as: ${loggedUser ? loggedUser.name : "Unknown"} (ID: ${loggedUserId})`;
-
-      renderNewsList(allNews);
+        renderNewsList(allNews);
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load news/users. Check console.");
+      }
     }
 
     function renderNewsList(list) {
       const container = document.getElementById("newsList");
       container.innerHTML = "";
 
-      const loggedId = Number(getLoggedUser());
+      const loggedId = getLoggedUser();
 
-      if (list.length === 0) {
+      if (!list || list.length === 0) {
         container.innerHTML = "<p>No news found.</p>";
         return;
       }
 
       list.forEach(item => {
-        
-        const author = allUsers.find(u => Number(u.id) === Number(item.author_id));
+        const author = allUsers.find(u => u.id === Number(item.author_id));
         const authorName = author ? author.name : "Unknown";
-
         const commentCount = item.comments ? item.comments.length : 0;
 
         const div = document.createElement("div");
@@ -74,49 +67,51 @@
           <p>Author: <b>${authorName}</b></p>
           <p>Comments: ${commentCount}</p>
 
-          <button onclick="viewDetails(${item.id})">View Details</button>
+          <button onclick="viewDetails('${item.id}')">View Details</button>
 
-          ${Number(item.author_id) === loggedId
+          ${Number(item.author_id) === Number(loggedId)
             ? `
-                <button onclick="editNews(${item.id})">Edit</button>
-                <button onclick="deleteNews(${item.id})">Delete</button>
-              `
+              <button onclick="editNews('${item.id}')">Edit</button>
+              <button onclick="deleteNews('${item.id}')">Delete</button>
+            `
             : ""
           }
         `;
-
         container.appendChild(div);
       });
     }
 
     function viewDetails(id) {
-      window.location.href = `details.html?id=${id}`;
+      window.location.href = `details.html?id=${encodeURIComponent(id)}`;
     }
-
     function editNews(id) {
-      window.location.href = `edit.html?id=${id}`;
+      window.location.href = `edit.html?id=${encodeURIComponent(id)}`;
     }
 
     async function deleteNews(id) {
-      const newsItem = allNews.find(n => Number(n.id) === Number(id));
-      const loggedId = Number(getLoggedUser());
+      try {
+        const newsItem = allNews.find(n => String(n.id) === String(id));
+        const loggedId = getLoggedUser();
 
-      if (!newsItem || Number(newsItem.author_id) !== loggedId) {
-        alert("You cannot delete a news written by someone else.");
-        return;
-      }
+        if (!newsItem || Number(newsItem.author_id) !== Number(loggedId)) {
+          alert("You cannot delete a news written by someone else.");
+          return;
+        }
 
-      if (confirm("Delete this news?")) {
-        await fetch(`${API}/news/${id}`, { method: "DELETE" });
-        allNews = allNews.filter(n => Number(n.id) !== Number(id));
+        if (!confirm("Delete this news?")) return;
+
+        await deleteNewsById(id);
+        allNews = allNews.filter(n => String(n.id) !== String(id));
         renderNewsList(allNews);
+      } catch (e) {
+        console.error(e);
+        alert("Delete failed. Check console.");
       }
     }
 
-  
     document.getElementById("searchInput").addEventListener("input", function () {
       const q = this.value.toLowerCase();
-      const filtered = allNews.filter(n => n.title.toLowerCase().includes(q));
+      const filtered = allNews.filter(n => (n.title || "").toLowerCase().includes(q));
       renderNewsList(filtered);
     });
 
