@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>News Details</title>
 </head>
 <body>
@@ -14,7 +14,7 @@
   <div id="commentsContainer"></div>
 
   <h3>Add Comment</h3>
-  <textarea id="commentText" rows="4" cols="50"></textarea><br>
+  <textarea id="commentText" rows="4" cols="55"></textarea><br>
   <button id="addCommentBtn">Add Comment</button>
 
   <script src="app.js"></script>
@@ -23,24 +23,32 @@
 
     const params = new URLSearchParams(window.location.search);
     const newsId = params.get("id");
+
     let currentNews = null;
     let allUsers = [];
 
+    function userNameById(id) {
+      const u = allUsers.find(x => Number(x.id) === Number(id));
+      return u ? u.name : "Unknown";
+    }
+
     async function loadDetails() {
-      allUsers = await fetchUsers();
-      currentNews = await fetchNewsById(newsId);
+      try {
+        allUsers = await fetchUsers();
+        currentNews = await fetchNewsById(newsId);
 
-      const author = allUsers.find(u => u.id === currentNews.author_id);
+        const newsDiv = document.getElementById("newsContainer");
+        newsDiv.innerHTML = `
+          <h3>${currentNews.title}</h3>
+          <p>${currentNews.body}</p>
+          <p><b>Author:</b> ${userNameById(currentNews.author_id)}</p>
+        `;
 
-     
-      const newsDiv = document.getElementById("newsContainer");
-      newsDiv.innerHTML = `
-        <h3>${currentNews.title}</h3>
-        <p>${currentNews.body}</p>
-        <p><b>Author:</b> ${author ? author.name : "Unknown"}</p>
-      `;
-
-      renderComments();
+        renderComments();
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load details. Check console.");
+      }
     }
 
     function renderComments() {
@@ -53,54 +61,45 @@
       }
 
       currentNews.comments.forEach(c => {
-        const user = allUsers.find(u => u.id === c.user_id);
-        const commenterName = user ? user.name : "Unknown";
-
         const div = document.createElement("div");
         div.style.border = "1px solid #ddd";
-        div.style.marginBottom = "4px";
-        div.style.padding = "4px";
+        div.style.marginBottom = "6px";
+        div.style.padding = "6px";
 
         const time = c.timestamp ? new Date(c.timestamp).toLocaleString() : "";
 
         div.innerHTML = `
-          <p><b>${commenterName}</b> (${time})</p>
+          <p><b>${userNameById(c.user_id)}</b> ${time ? `(${time})` : ""}</p>
           <p>${c.text}</p>
         `;
-
         container.appendChild(div);
       });
     }
 
-    document.getElementById("addCommentBtn").addEventListener("click", async function () {
+    document.getElementById("addCommentBtn").addEventListener("click", async () => {
       const textEl = document.getElementById("commentText");
       const text = textEl.value;
 
-      if (isEmpty(text)) {
-        alert("Comment text cannot be empty.");
-        return;
-      }
+      if (isEmpty(text)) return alert("Comment text cannot be empty.");
 
       const newComment = {
         id: Date.now(),
-        text,
+        text: text.trim(),
         user_id: getLoggedUser(),
         timestamp: new Date().toISOString()
       };
 
       const updatedComments = currentNews.comments ? [...currentNews.comments, newComment] : [newComment];
 
-     
-      await fetch(`${API}/news/${newsId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comments: updatedComments })
-      });
-
-     
-      currentNews.comments = updatedComments;
-      textEl.value = "";
-      renderComments();
+      try {
+        const updated = await patchNews(newsId, { comments: updatedComments });
+        currentNews = updated; // server returns updated object
+        textEl.value = "";
+        renderComments();
+      } catch (e) {
+        console.error(e);
+        alert("Failed to add comment. Check console.");
+      }
     });
 
     loadDetails();
