@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Edit News</title>
 </head>
 <body>
@@ -11,12 +11,12 @@
   <form id="editForm">
     <div>
       <label for="title">Title:</label><br>
-      <input type="text" id="title" name="title" style="width: 300px;">
+      <input type="text" id="title" style="width: 320px;">
     </div>
     <br>
     <div>
       <label for="body">Body:</label><br>
-      <textarea id="body" name="body" rows="6" cols="50"></textarea>
+      <textarea id="body" rows="6" cols="55"></textarea>
     </div>
     <br>
     <button type="submit">Save Changes</button>
@@ -31,46 +31,40 @@
     let currentNews = null;
 
     async function loadEdit() {
-      currentNews = await fetchNewsById(newsId);
-      const loggedId = getLoggedUser();
+      try {
+        currentNews = await fetchNewsById(newsId);
+        const loggedId = getLoggedUser();
 
-      if (currentNews.author_id !== loggedId) {
-        alert("You cannot edit news written by another user.");
-        window.location.href = "news.html";
-        return;
+        if (Number(currentNews.author_id) !== Number(loggedId)) {
+          alert("You cannot edit news written by another user.");
+          window.location.href = "news.html";
+          return;
+        }
+
+        document.getElementById("title").value = currentNews.title;
+        document.getElementById("body").value = currentNews.body;
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load edit page. Check console.");
       }
-
-      document.getElementById("title").value = currentNews.title;
-      document.getElementById("body").value = currentNews.body;
     }
 
-    document.getElementById("editForm").addEventListener("submit", async function (e) {
+    document.getElementById("editForm").addEventListener("submit", async (e) => {
       e.preventDefault();
 
-      const titleEl = document.getElementById("title");
-      const bodyEl = document.getElementById("body");
+      const title = document.getElementById("title").value;
+      const body  = document.getElementById("body").value;
 
-      const title = titleEl.value;
-      const body = bodyEl.value;
+      if (isEmpty(title)) return alert("News title cannot be empty.");
+      if (isShort(body, 20)) return alert("News body must be at least 20 characters.");
 
-      
-      if (isEmpty(title)) {
-        alert("News title cannot be empty.");
-        return;
+      try {
+        await patchNews(newsId, { title: title.trim(), body: body.trim() });
+        window.location.href = "news.html";
+      } catch (e) {
+        console.error(e);
+        alert("Update failed. Check console.");
       }
-
-      if (isShort(body, 20)) {
-        alert("News body must be at least 20 characters.");
-        return;
-      }
-
-      await fetch(`${API}/news/${newsId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, body })
-      });
-
-      window.location.href = "news.html";
     });
 
     loadEdit();
