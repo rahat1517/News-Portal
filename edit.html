@@ -2,72 +2,42 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Edit News</title>
+  <title>Login - News Portal</title>
 </head>
 <body>
-  <button onclick="window.location.href='news.html'">Back to News List</button>
-  <h2>Edit News</h2>
+  <h2>Login</h2>
 
-  <form id="editForm">
-    <div>
-      <label for="title">Title:</label><br>
-      <input type="text" id="title" style="width: 320px;">
-    </div>
-    <br>
-    <div>
-      <label for="body">Body:</label><br>
-      <textarea id="body" rows="6" cols="55"></textarea>
-    </div>
-    <br>
-    <button type="submit">Save Changes</button>
-  </form>
+  <label for="userSelect">Select User:</label>
+  <select id="userSelect"></select>
+  <button id="loginBtn">Login</button>
 
   <script src="app.js"></script>
   <script>
-    requireLogin();
-
-    const params = new URLSearchParams(window.location.search);
-    const newsId = params.get("id");
-    let currentNews = null;
-
-    async function loadEdit() {
+    (async function () {
       try {
-        currentNews = await fetchNewsById(newsId);
-        const loggedId = getLoggedUser();
+        const users = await fetchUsers();
+        const select = document.getElementById("userSelect");
+        select.innerHTML = `<option value="">-- Select a user --</option>`;
 
-        if (Number(currentNews.author_id) !== Number(loggedId)) {
-          alert("You cannot edit news written by another user.");
-          window.location.href = "news.html";
-          return;
-        }
-
-        document.getElementById("title").value = currentNews.title;
-        document.getElementById("body").value = currentNews.body;
+        users.forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.id;
+          opt.textContent = `${u.name} (${u.email})`;
+          select.appendChild(opt);
+        });
       } catch (e) {
         console.error(e);
-        alert("Failed to load edit page. Check console.");
+        alert("Failed to load users. Is JSON-server running?");
       }
-    }
+    })();
 
-    document.getElementById("editForm").addEventListener("submit", async (e) => {
-      e.preventDefault();
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const userId = document.getElementById("userSelect").value;
+      if (!userId) return alert("Please select a user.");
 
-      const title = document.getElementById("title").value;
-      const body  = document.getElementById("body").value;
-
-      if (isEmpty(title)) return alert("News title cannot be empty.");
-      if (isShort(body, 20)) return alert("News body must be at least 20 characters.");
-
-      try {
-        await patchNews(newsId, { title: title.trim(), body: body.trim() });
-        window.location.href = "news.html";
-      } catch (e) {
-        console.error(e);
-        alert("Update failed. Check console.");
-      }
+      loginUser(userId);
+      window.location.href = "news.html";
     });
-
-    loadEdit();
   </script>
 </body>
 </html>
