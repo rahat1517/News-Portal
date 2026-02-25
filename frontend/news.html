@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rahat— News Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container">
+
+    <!-- Masthead / Navigation -->
+    <div class="card anim-in anim-in-1" style="margin-bottom:20px; padding:18px 28px;">
+      <div class="topbar" style="margin-bottom:0;">
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <div class="portal-title">Rahat</div>
+            <div class="portal-sub">News Portal</div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <div class="badge">
+            <span class="live-dot"></span>
+            <span id="loggedAs">Loading…</span>
+          </div>
+          <button class="btn success" onclick="window.location.href='create.html'">+ Publish</button>
+          <button class="btn secondary" onclick="logout()">Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main content card -->
+    <div class="card anim-in anim-in-2">
+
+      <!-- Heading + stats row -->
+      <div class="flex-between" style="margin-bottom:18px;">
+        <div>
+          <div class="page-eyebrow">Latest Coverage</div>
+          <div class="page-title" id="pageHeading">All Stories</div>
+        </div>
+        <div class="stats-row" style="grid-template-columns: repeat(3,1fr); gap:10px;">
+          <div class="stat-card" style="padding:12px 16px; text-align:center;">
+            <div class="stat-value gold" id="statTotal" style="font-size:24px;">–</div>
+            <div class="stat-label">Stories</div>
+          </div>
+          <div class="stat-card" style="padding:12px 16px; text-align:center;">
+            <div class="stat-value blue" id="statMine" style="font-size:24px;">–</div>
+            <div class="stat-label">Mine</div>
+          </div>
+          <div class="stat-card" style="padding:12px 16px; text-align:center;">
+            <div class="stat-value green" id="statComments" style="font-size:24px;">–</div>
+            <div class="stat-label">Comments</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Search row -->
+      <div class="search-wrap" style="margin-bottom:20px;">
+        <div>
+          <label for="search">Search Stories</label>
+          <input id="search" placeholder="Search by headline…" />
+        </div>
+        <button class="btn" id="searchBtn" style="height:47px; align-self:end;">Search</button>
+        <button class="btn secondary" id="clearBtn" style="height:47px; align-self:end;">Clear</button>
+      </div>
+
+      <!-- News list -->
+      <div id="list"></div>
+
+      <!-- Pagination -->
+      <div class="pagination" id="pager" style="display:none;">
+        <button class="btn secondary" id="prevBtn">← Previous</button>
+        <span class="page-info" id="pageInfo"></span>
+        <button class="btn secondary" id="nextBtn">Next →</button>
+      </div>
+
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    requireLogin();
+
+    const PAGE_SIZE = 5;
+    let allUsers = [];
+    let allNews = [];
+    let viewNews = [];
+    let page = 1;
+
+    function userNameById(id) {
+      const u = allUsers.find(x => Number(x.id) === Number(id));
+      return u ? u.name : "Unknown";
+    }
+
+    function initials(name) {
+      return (name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+    }
+
+    function setLoggedAs() {
+      const me = getLoggedUser();
+      document.getElementById("loggedAs").textContent = userNameById(me);
+    }
+
+    function updateStats() {
+      const me = getLoggedUser();
+      const totalComments = allNews.reduce((s, n) => s + (n.comments ? n.comments.length : 0), 0);
+      document.getElementById("statTotal").textContent = allNews.length;
+      document.getElementById("statMine").textContent = allNews.filter(n => Number(n.author_id) === Number(me)).length;
+      document.getElementById("statComments").textContent = totalComments;
+    }
+
+    function applySearch() {
+      const q = document.getElementById("search").value.trim().toLowerCase();
+      viewNews = !q ? [...allNews] : allNews.filter(n => (n.title || "").toLowerCase().includes(q));
+      document.getElementById("pageHeading").textContent = q ? `Results for "${q}"` : "All Stories";
+      page = 1;
+      render();
+    }
+
+    function pageSlice(items) {
+      const start = (page - 1) * PAGE_SIZE;
+      return items.slice(start, start + PAGE_SIZE);
+    }
+
+    function render() {
+      const container = document.getElementById("list");
+      container.innerHTML = "";
+
+      if (!viewNews.length) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <div class="icon">📰</div>
+            <p>No stories found. Be the first to publish.</p>
+          </div>`;
+        document.getElementById("pager").style.display = "none";
+        return;
+      }
+
+      const items = pageSlice(viewNews);
+      const me = getLoggedUser();
+
+      items.forEach((n, i) => {
+        const isAuthor = Number(n.author_id) === Number(me);
+        const commentsCount = (n.comments && n.comments.length) ? n.comments.length : 0;
+        const authorName = userNameById(n.author_id);
+        const avi = initials(authorName);
+
+        const div = document.createElement("div");
+        div.className = `news-item anim-in`;
+        div.style.animationDelay = `${i * 0.07}s`;
+
+        div.innerHTML = `
+          <h3>${n.title}</h3>
+          <div class="news-meta">
+            <span class="author-chip">
+              <span class="author-avatar">${avi}</span>
+              ${authorName}
+            </span>
+            <span class="sep">·</span>
+            <span>
+              💬 ${commentsCount} comment${commentsCount !== 1 ? "s" : ""}
+            </span>
+            ${isAuthor ? `<span class="sep">·</span><span class="tag gold">Your Story</span>` : ""}
+          </div>
+          <div class="news-actions">
+            <button class="btn" onclick="window.location.href='details.html?id=${n.id}'">Read Story</button>
+            ${isAuthor ? `<button class="btn secondary" onclick="window.location.href='edit.html?id=${n.id}'">Edit</button>` : ""}
+            ${isAuthor ? `<button class="btn danger" onclick="onDelete('${n.id}')">Delete</button>` : ""}
+          </div>
+        `;
+        container.appendChild(div);
+      });
+
+      const totalPages = Math.ceil(viewNews.length / PAGE_SIZE);
+      const pager = document.getElementById("pager");
+      pager.style.display = totalPages > 1 ? "flex" : "none";
+      document.getElementById("pageInfo").textContent = `Page ${page} of ${totalPages}`;
+      document.getElementById("prevBtn").disabled = page <= 1;
+      document.getElementById("nextBtn").disabled = page >= totalPages;
+    }
+
+    async function onDelete(id) {
+      if (!confirm("Permanently delete this story?")) return;
+      try {
+        const n = allNews.find(x => String(x.id) === String(id));
+        const me = getLoggedUser();
+        if (!n || Number(n.author_id) !== Number(me)) {
+          return alert("You cannot delete a story written by someone else.");
+        }
+        await deleteNewsById(id);
+        await load();
+      } catch (e) {
+        console.error(e);
+        alert("Delete failed. Check console.");
+      }
+    }
+
+    async function load() {
+      [allUsers, allNews] = await Promise.all([fetchUsers(), fetchNews()]);
+      allNews.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+      viewNews = [...allNews];
+      setLoggedAs();
+      updateStats();
+      render();
+    }
+
+    document.getElementById("searchBtn").addEventListener("click", applySearch);
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      document.getElementById("search").value = "";
+      applySearch();
+    });
+    document.getElementById("search").addEventListener("keydown", e => { if (e.key === "Enter") applySearch(); });
+    document.getElementById("prevBtn").addEventListener("click", () => { page--; render(); window.scrollTo(0,0); });
+    document.getElementById("nextBtn").addEventListener("click", () => { page++; render(); window.scrollTo(0,0); });
+
+    load().catch(e => {
+      console.error(e);
+      alert("Failed to load news. Is JSON-server running?");
+    });
+  </script>
+
+</body>
+</html>

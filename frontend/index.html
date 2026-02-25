@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rahat — News Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="login-wrap">
+    <div class="login-card anim-in">
+
+      <div class="login-masthead">
+        <div class="login-logo"></div>
+        <div class="login-title">Rahat</div>
+        <div class="login-tagline">Your trusted source for the latest news</div>
+      </div>
+
+      <div class="divider accent"></div>
+
+      <div class="row" style="gap:20px;">
+        <div>
+          <label for="userSelect">Sign in as</label>
+          <select id="userSelect"></select>
+        </div>
+
+        <button class="btn success" id="loginBtn" style="width:100%; justify-content:center;">
+          Enter the Portal →
+        </button>
+      </div>
+
+      <div class="hint" style="text-align:center; margin-top:20px;">
+        Users are loaded from the JSON-Server /users endpoint.
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    (async function () {
+      try {
+        const users = await fetchUsers();
+        const select = document.getElementById("userSelect");
+        select.innerHTML = `<option value="">— Choose your account —</option>`;
+        users.forEach(u => {
+          const opt = document.createElement("option");
+          opt.value = u.id;
+          opt.textContent = `${u.name}  ·  ${u.email}`;
+          select.appendChild(opt);
+        });
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load users. Is JSON-server running?");
+      }
+    })();
+
+    document.getElementById("loginBtn").addEventListener("click", () => {
+      const userId = document.getElementById("userSelect").value;
+      if (!userId) return alert("Please select an account to continue.");
+      loginUser(userId);
+      window.location.href = "news.html";
+    });
+  </script>
+
+</body>
+</html>

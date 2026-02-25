@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rahat — Story</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container" style="max-width:800px;">
+    <div class="card anim-in">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <div class="portal-title">Rahat</div>
+            <div class="portal-sub">Full Story</div>
+          </div>
+        </div>
+        <button class="btn secondary" onclick="window.location.href='news.html'">← All Stories</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Article content -->
+      <div id="newsContainer"></div>
+
+      <div class="divider"></div>
+
+      <!-- Comments heading -->
+      <div class="flex-between" style="margin-bottom:16px;">
+        <h3 style="font-size:20px;">Discussion</h3>
+        <span class="badge blue" id="commentCount"></span>
+      </div>
+
+      <div id="commentsContainer"></div>
+
+      <div class="divider"></div>
+
+      <!-- Add comment -->
+      <div class="page-eyebrow" style="margin-bottom:10px;">Leave a Comment</div>
+      <div class="row" style="gap:14px;">
+        <div>
+          <label for="commentText">Your comment</label>
+          <textarea id="commentText" style="min-height:100px;" placeholder="Share your thoughts on this story…"></textarea>
+          <div class="hint">Comment must not be empty.</div>
+        </div>
+        <div class="actions" style="justify-content:flex-end; margin-top:0;">
+          <button class="btn success" id="addCommentBtn">Post Comment</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    requireLogin();
+
+    const params = new URLSearchParams(window.location.search);
+    const newsId = params.get("id");
+    let currentNews = null;
+    let allUsers = [];
+
+    function userNameById(id) {
+      const u = allUsers.find(x => Number(x.id) === Number(id));
+      return u ? u.name : "Unknown";
+    }
+
+    function initials(name) {
+      return (name || "?").split(" ").map(w => w[0]).join("").slice(0,2).toUpperCase();
+    }
+
+    async function loadDetails() {
+      try {
+        [allUsers, currentNews] = await Promise.all([fetchUsers(), fetchNewsById(newsId)]);
+        const authorName = userNameById(currentNews.author_id);
+        const avi = initials(authorName);
+
+        document.getElementById("newsContainer").innerHTML = `
+          <div class="article-title">${currentNews.title}</div>
+          <div class="news-meta" style="margin-bottom:20px;">
+            <span class="author-chip">
+              <span class="author-avatar" style="width:28px;height:28px;font-size:12px;">${avi}</span>
+              <b>${authorName}</b>
+            </span>
+            <span class="sep">·</span>
+            <span class="tag gold">Rahat Staff</span>
+          </div>
+          <div class="article-body">${currentNews.body}</div>
+        `;
+        renderComments();
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load story.");
+      }
+    }
+
+    function renderComments() {
+      const container = document.getElementById("commentsContainer");
+      container.innerHTML = "";
+      const count = (currentNews.comments && currentNews.comments.length) ? currentNews.comments.length : 0;
+      document.getElementById("commentCount").textContent = `${count} comment${count === 1 ? "" : "s"}`;
+
+      if (!count) {
+        container.innerHTML = `
+          <div class="empty-state" style="padding:30px 0;">
+            <div class="icon">💬</div>
+            <p>No comments yet. Start the discussion.</p>
+          </div>`;
+        return;
+      }
+
+      currentNews.comments.forEach((c, i) => {
+        const name = userNameById(c.user_id);
+        const avi = initials(name);
+        const time = c.timestamp ? new Date(c.timestamp).toLocaleString("en-US", { month:"short", day:"numeric", year:"numeric", hour:"2-digit", minute:"2-digit" }) : "";
+
+        const div = document.createElement("div");
+        div.className = "comment-item anim-in";
+        div.style.animationDelay = `${i * 0.06}s`;
+        div.innerHTML = `
+          <div class="comment-header">
+            <div class="comment-author">
+              <span class="comment-avatar">${avi}</span>
+              ${name}
+            </div>
+            <span class="comment-time">${time}</span>
+          </div>
+          <div class="comment-body">${c.text}</div>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    document.getElementById("addCommentBtn").addEventListener("click", async () => {
+      const textEl = document.getElementById("commentText");
+      const text = textEl.value;
+      if (isEmpty(text)) return alert("Comment cannot be empty.");
+
+      const newComment = {
+        id: Date.now(),
+        text: text.trim(),
+        user_id: getLoggedUser(),
+        timestamp: new Date().toISOString()
+      };
+
+      const updatedComments = currentNews.comments ? [...currentNews.comments, newComment] : [newComment];
+
+      try {
+        currentNews = await patchNews(newsId, { comments: updatedComments });
+        textEl.value = "";
+        renderComments();
+      } catch (e) {
+        console.error(e);
+        alert("Failed to post comment.");
+      }
+    });
+
+    loadDetails();
+  </script>
+
+</body>
+</html>

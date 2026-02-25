@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rahat — Edit Story</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <div class="container" style="max-width:760px;">
+    <div class="card anim-in">
+
+      <!-- Header -->
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <div class="page-eyebrow">Edit Story</div>
+            <div class="page-title">Update Your Post</div>
+          </div>
+        </div>
+        <button class="btn secondary" onclick="window.location.href='news.html'">← Back</button>
+      </div>
+
+      <div class="divider accent"></div>
+
+      <form id="newsForm" class="row" style="gap:20px;">
+
+        <div>
+          <label for="title">Headline</label>
+          <input id="title" placeholder="Enter a strong headline…" />
+          <div class="hint">Headline cannot be empty.</div>
+        </div>
+
+        <div>
+          <label for="body">Story</label>
+          <textarea id="body" style="min-height:200px;" placeholder="Minimum 20 characters…"></textarea>
+          <div class="hint">Story body must be at least 20 characters.</div>
+        </div>
+
+        <div class="actions" style="justify-content:flex-end; margin-top:4px;">
+          <button type="button" class="btn secondary" onclick="window.location.href='news.html'">Cancel</button>
+          <button type="submit" class="btn success">Save Changes →</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script>
+    requireLogin();
+
+    const params = new URLSearchParams(window.location.search);
+    const newsId = params.get("id");
+    let currentNews = null;
+
+    async function loadNews() {
+      try {
+        currentNews = await fetchNewsById(newsId);
+        document.getElementById("title").value = currentNews.title;
+        document.getElementById("body").value = currentNews.body;
+      } catch (e) {
+        console.error(e);
+        alert("Failed to load story.");
+      }
+    }
+
+    document.getElementById("newsForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const title = document.getElementById("title").value;
+      const body  = document.getElementById("body").value;
+
+      if (isEmpty(title)) return alert("Headline cannot be empty.");
+      if (isShort(body, 20)) return alert("Story body must be at least 20 characters.");
+
+      const loggedId = getLoggedUser();
+      if (Number(currentNews.author_id) !== Number(loggedId)) {
+        return alert("You cannot edit a story written by someone else.");
+      }
+
+      try {
+        await patchNews(newsId, { title: title.trim(), body: body.trim() });
+        window.location.href = "news.html";
+      } catch (err) {
+        console.error(err);
+        alert("Update failed. Check console.");
+      }
+    });
+
+    loadNews();
+  </script>
+
+</body>
+</html>
