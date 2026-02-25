@@ -1,0 +1,42 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  password  String   // hashed
+  createdAt DateTime @default(now())
+
+  news      News[]   @relation("AuthorNews")
+  comments  Comment[]
+}
+
+model News {
+  id        Int      @id @default(autoincrement())
+  title     String
+  body      String
+  authorId  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  author    User     @relation("AuthorNews", fields: [authorId], references: [id])
+  comments  Comment[]
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  text      String
+  newsId    Int
+  userId    Int
+  createdAt DateTime @default(now())
+
+  news      News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
