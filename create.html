@@ -2,17 +2,53 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Create News</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rahat — Publish Story</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <button onclick="window.location.href='news.html'">Back to News List</button>
-  <h2>Create News</h2>
 
-  <form id="newsForm">
-    <input id="title" placeholder="Title" style="width: 320px;" /><br><br>
-    <textarea id="body" placeholder="Body" rows="6" cols="55"></textarea><br><br>
-    <button type="submit">Create</button>
-  </form>
+  <div class="container" style="max-width:760px;">
+    <div class="card anim-in">
+
+      <!-- Header -->
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <div class="page-eyebrow">New Story</div>
+            <div class="page-title">Publish to Rahat</div>
+          </div>
+        </div>
+        <button class="btn secondary" onclick="window.location.href='news.html'">← Back</button>
+      </div>
+
+      <div class="divider accent"></div>
+
+      <!-- Form -->
+      <form id="newsForm" class="row" style="gap:20px;">
+
+        <div>
+          <label for="title">Headline</label>
+          <input id="title" placeholder="Write a compelling headline…" />
+          <div class="hint">A strong headline captures the story in one line.</div>
+        </div>
+
+        <div>
+          <label for="body">Story</label>
+          <textarea id="body" style="min-height:200px;" placeholder="Tell the full story here… (minimum 20 characters)"></textarea>
+          <div class="hint">Body must be at least 20 characters long.</div>
+        </div>
+
+        <div class="actions" style="justify-content:flex-end; margin-top:4px;">
+          <button type="button" class="btn secondary" onclick="window.location.href='news.html'">Discard</button>
+          <button type="submit" class="btn success">Publish Story →</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
 
   <script src="app.js"></script>
   <script>
@@ -20,12 +56,11 @@
 
     document.getElementById("newsForm").addEventListener("submit", async (e) => {
       e.preventDefault();
-
       const title = document.getElementById("title").value;
       const body  = document.getElementById("body").value;
 
-      if (isEmpty(title)) return alert("News title cannot be empty.");
-      if (isShort(body, 20)) return alert("News body must be at least 20 characters.");
+      if (isEmpty(title)) return alert("Headline cannot be empty.");
+      if (isShort(body, 20)) return alert("Story body must be at least 20 characters.");
 
       try {
         await createNews({
@@ -34,13 +69,13 @@
           author_id: getLoggedUser(),
           comments: []
         });
-
         window.location.href = "news.html";
       } catch (err) {
         console.error(err);
-        alert("Create failed. Check console.");
+        alert("Publish failed. Check console.");
       }
     });
   </script>
+
 </body>
 </html>
